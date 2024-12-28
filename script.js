@@ -1,11 +1,12 @@
 const video = document.getElementById('video')
 
 Promise.all([
-    faceapi.nets.tinyFaceDetector.loadFromUri('/models'), //smaller and quicker face detector which runs real time
-    faceapi.nets.faceLandmark68Net.loadFromUri('/models'), //register different parts of face such as eyebrows,mouth etc
-    faceapi.nets.faceRecognitionNet.loadFromUri('/models'), // helps api recognition face with a box around it
-    faceapi.nets.faceExpressionNet.loadFromUri('/models'), // helps api recognize and distinghuish between different facial expressions -> happy/sad etc
+    faceapi.nets.tinyFaceDetector.loadFromUri('/models'), 
+    faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+    faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
+    faceapi.nets.faceExpressionNet.loadFromUri('/models')
 ]).then(startVideo)
+
 function startVideo(){
     navigator.getUserMedia(
         {video:{}},
@@ -14,6 +15,17 @@ function startVideo(){
     )
 }
 
-video.addEventListener('play',()=>{
-    console.log('running')
-})
+video.addEventListener('play', () => {
+    const canvas = faceapi.createCanvasFromMedia(video)
+    document.body.append(canvas)
+    const displaySize = { width: video.width, height: video.height }
+    faceapi.matchDimensions(canvas, displaySize)
+    setInterval(async () => {
+      const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceExpressions()
+      const resizedDetections = faceapi.resizeResults(detections, displaySize)
+      canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height)
+      faceapi.draw.drawDetections(canvas, resizedDetections)
+      faceapi.draw.drawFaceLandmarks(canvas, resizedDetections)
+      faceapi.draw.drawFaceExpressions(canvas, resizedDetections)
+    }, 100)
+  })
